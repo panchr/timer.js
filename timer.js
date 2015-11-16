@@ -71,48 +71,143 @@ Timer.prototype.removeCallback = function(id) {
 	delete this.hooks[-1][id];
 	}
 
-Timer.prototype.secondHook = function(second, hook) {
-	// Add a callback for when a specific second passes
-	if (second < 0) return; // irrelevant hook
+Timer.prototype.once = function(second, callback) {
+	/*
+	SYNOPSIS
+		Add a callback that is called once when a specific elapsed time is reached
+
+	PARAMETERS
+		int second - the elapsed time (in seconds) for when the callback
+			should be called (a second value less than 0 renders this moot)
+		function callback - function to be called at the given time
+
+	CALLBACK PARAMETERS
+		int second - the number of seconds that have elapsed since the timer
+			was started
+
+	RETURN VALUE
+		None
+
+	USAGE
+		// Add a callback at t = 10
+		timer.once(10, function(second) {
+			console.log(second); // will output 10
+			})
+
+		// Add a callback that will never be called (no reason to do this)
+		timer.once(-5, function(second) {
+			console.log("This is impossible.");
+			})
+	*/
+	if (second < 0) return; // irrelevant hook, t < 0
 	if (this.hooks.hasOwnProperty(second)) this.hooks[second].push(hook);
 	else this.hooks[second] = [hook];
 	}
 
 Timer.prototype.isRunning = function() {
-	// Check if the timer is running
+	/*
+	SYNOPSIS
+		Returns whether or not the timer is currently running
+
+	PARAMETERS
+		None
+
+	RETURN VALUE
+		bool running - whether or not the timer is running at the moment
+
+	USAGE
+		// Two different actions based on whether or not the timer is running
+		if (timer.isRunning()) {
+			console.log("Timer is running");
+			}
+		else {
+			console.log("Timer is not running");
+			}
+	*/
 	return this.interval != null;
 	}
 
 Timer.prototype.start = function() {
-	// Start the timer
+	/*
+	SYNOPSIS
+		Start the timer if it is not currently running
+
+	PARAMETERS
+		None
+
+	RETURN VALUE
+		bool started - whether or not the timer was started
+			This is equivalent to calling isRunning() before start()
+
+	USAGE
+		// Start the timer
+		timer.start();
+	*/
 	if (! this.isRunning()) {
 		var timer = this;
 		this.interval = setInterval(function() {
+			// should only run if there are hooks for the current second
 			if (timer.hooks.hasOwnProperty(timer.elapsed)) {
 				// call each hook for each second
 				for (var i = 0; i < timer.hooks[timer.elapsed].length; i++) {
 					timer.hooks[timer.elapsed][i](timer.elapsed);
 					}
-				delete timer.hooks[timer.elapsed]; // no way to use these hooks again
+				// the time has passed and so this memory can be freed
+				delete timer.hooks[timer.elapsed];
 				}
+			// call the hooks for each second
 			for (var key in timer.hooks[-1]) {
 				timer.hooks[-1][key](timer.elapsed);
 				}
 			timer.elapsed++;
 			}, 1000);
+
+		return true;
 		}
+	return false;
 	}
 
 Timer.prototype.stop = function() {
-	// Stop the timer
+	/*
+	SYNOPSIS
+		Stop the timer if it is currently running
+
+	PARAMETERS
+		None
+
+	RETURN VALUE
+		bool stopped - whether or not the timer was stopped
+			This is equivalent to calling isRunning() before stop()
+
+	USAGE
+		// Stop the timer
+		timer.stop();
+	*/
 	if (this.isRunning()) {
 		clearInterval(this.interval);
 		this.interval = null;
+		return true;
 		}
+	return false;
 	}
 
 Timer.prototype.reset = function() {
-	// Reset the timer
+	/*
+	SYNOPSIS
+		Reset the timer to the value of 0
+		Note: The timer is NOT restarted. It is stopped if running, but must be
+		restarted again by the client.
+
+	PARAMETERS
+		None
+
+	RETURN VALUE
+		None
+
+	USAGE
+		// Reset the timer
+		timer.reset();
+	*/
 	this.stop();
 	this.elapsed = 0;
 	}
